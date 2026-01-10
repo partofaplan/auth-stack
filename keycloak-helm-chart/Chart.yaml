@@ -1,0 +1,24 @@
+apiVersion: v2
+name: keycloak
+description: A Helm chart for Keycloak identity and access management with Rancher integration
+type: application
+version: 1.0.0
+appVersion: "24.0.1"
+keywords:
+  - keycloak
+  - authentication
+  - authorization
+  - identity
+  - sso
+  - rancher
+home: https://www.keycloak.org/
+sources:
+  - https://github.com/keycloak/keycloak
+maintainers:
+  - name: Auth Stack Team
+    email: team@example.com
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled

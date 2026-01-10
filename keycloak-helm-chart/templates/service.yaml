@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  {{- if .Values.keycloak.configuration.https.enabled }}
+  - name: https
+    port: {{ .Values.service.httpsPort }}
+    targetPort: https
+    protocol: TCP
+  {{- end }}
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "keycloak.fullname" . }}-headless
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  {{- with .Values.service.headless.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: http
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
+  {{- if .Values.keycloak.configuration.https.enabled }}
+  - name: https
+    port: {{ .Values.service.httpsPort }}
+    targetPort: https
+    protocol: TCP
+  {{- end }}
+  - name: jgroups
+    port: 7600
+    targetPort: jgroups
+    protocol: TCP
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}

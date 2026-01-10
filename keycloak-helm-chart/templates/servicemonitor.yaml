@@ -1,0 +1,21 @@
+{{- if and .Values.rancher.monitoring.enabled .Values.rancher.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+    {{- if .Values.rancher.projectId }}
+    field.cattle.io/projectId: {{ .Values.rancher.projectId | quote }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: {{ .Values.rancher.monitoring.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.rancher.monitoring.serviceMonitor.scrapeTimeout }}
+    scheme: http
+{{- end }}

@@ -1,0 +1,111 @@
+# Default values for PostgreSQL
+
+# PostgreSQL Configuration
+postgresql:
+  # Database credentials
+  auth:
+    # PostgreSQL superuser password
+    postgresPassword: ""  # Set via --set or create secret
+    # Application database name
+    database: keycloak
+    # Application database user
+    username: keycloak
+    # Application user password
+    password: ""  # Set via --set or create secret
+    # Use existing secret (optional)
+    existingSecret: ""
+    existingSecretPasswordKey: "postgres-password"
+    existingSecretUserPasswordKey: "password"
+
+  # PostgreSQL image
+  image:
+    repository: postgres
+    tag: "16.2"
+    pullPolicy: IfNotPresent
+
+  # Container port
+  containerPort: 5432
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # PostgreSQL configuration
+  config:
+    maxConnections: "100"
+    sharedBuffers: "128MB"
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 5432
+  annotations: {}
+
+# Persistence Configuration
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  accessMode: ReadWriteOnce
+  size: 8Gi
+  # Existing PVC
+  existingClaim: ""
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 999
+
+# Container security context
+securityContext:
+  runAsUser: 999
+  runAsNonRoot: true
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+# Metrics (optional)
+metrics:
+  enabled: false
+  image:
+    repository: prometheuscommunity/postgres-exporter
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  serviceMonitor:
+    enabled: false

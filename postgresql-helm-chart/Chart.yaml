@@ -1,0 +1,16 @@
+apiVersion: v2
+name: postgresql
+description: A minimal PostgreSQL database for Keycloak
+type: application
+version: 1.0.0
+appVersion: "16.2"
+keywords:
+  - postgresql
+  - database
+  - sql
+home: https://www.postgresql.org/
+sources:
+  - https://github.com/postgres/postgres
+maintainers:
+  - name: Auth Stack Team
+    email: team@example.com

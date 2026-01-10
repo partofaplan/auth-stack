@@ -1,0 +1,239 @@
+# Production values for Keycloak
+# Override default values for production deployments
+
+keycloak:
+  # High availability with 3 replicas
+  replicas: 3
+
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "24.0.1"
+    pullPolicy: IfNotPresent
+
+  auth:
+    adminUser: admin
+    # Use existing secret for production
+    existingSecret: "keycloak-admin-secret"
+    existingSecretKey: "password"
+
+  configuration:
+    hostname: keycloak.production.example.com
+    hostnameStrict: true
+    hostnameStrictBackchannel: false
+
+    http:
+      enabled: true
+      port: 8080
+
+    https:
+      enabled: false  # TLS termination at ingress
+      port: 8443
+
+    proxy: edge
+
+    healthEnabled: true
+    metricsEnabled: true
+
+    cache:
+      stack: kubernetes
+
+    logLevel: WARN  # Reduce logging in production
+
+  # Production resource limits
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  # Enhanced probes for production
+  livenessProbe:
+    httpGet:
+      path: /health/live
+      port: 8080
+    initialDelaySeconds: 300
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /health/started
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 60  # Allow more time for startup
+
+  # Pod anti-affinity for HA
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - keycloak
+          topologyKey: kubernetes.io/hostname
+
+  # Security context
+  podSecurityContext:
+    fsGroup: 1000
+    runAsNonRoot: true
+
+  securityContext:
+    runAsUser: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+  httpsPort: 8443
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+  hosts:
+    - host: keycloak.production.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    - secretName: keycloak-production-tls
+      hosts:
+        - keycloak.production.example.com
+
+# PostgreSQL production configuration
+postgresql:
+  enabled: true
+  auth:
+    username: keycloak
+    database: keycloak
+    existingSecret: "keycloak-postgresql-secret"
+
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: ""  # Use default or specify (e.g., "longhorn")
+
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+    # PostgreSQL configuration for better performance
+    extendedConfiguration: |
+      max_connections = 200
+      shared_buffers = 256MB
+      effective_cache_size = 1GB
+      maintenance_work_mem = 64MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 1310kB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+
+  # Enable read replicas for production (optional)
+  readReplicas:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Persistence for Keycloak
+persistence:
+  enabled: true
+  storageClass: ""  # Use default or specify
+  accessMode: ReadWriteOnce
+  size: 2Gi
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods"]
+      verbs: ["get", "list"]
+
+# Rancher integration
+rancher:
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+
+  projectId: ""  # Set your Rancher project ID
+
+# Pod Disruption Budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Horizontal Pod Autoscaling (optional)
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# Network Policy (uncomment to enable)
+networkPolicy:
+  enabled: false
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8080
