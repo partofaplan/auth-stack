@@ -1,0 +1,91 @@
+# Keycloak Values - k3d Local Deployment
+# All values hardcoded for local development
+
+# Disable bundled PostgreSQL - using external database
+postgresql:
+  enabled: false
+
+keycloak:
+  replicas: 2
+
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "24.0.1"
+    pullPolicy: IfNotPresent
+
+  auth:
+    adminUser: admin
+    adminPassword: admin123
+
+  configuration:
+    # Hostname for Keycloak
+    hostname: keycloak.local
+
+    # Proxy mode for reverse proxy/ingress
+    proxy: edge
+
+    # External PostgreSQL database configuration
+    database:
+      vendor: postgres
+      hostname: postgresql.keycloak.svc.cluster.local
+      port: 5432
+      database: keycloak
+      username: keycloak
+      password: keycloak123
+
+  clustering:
+    enabled: true
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  podSecurityContext:
+    fsGroup: 1000
+    runAsUser: 1000
+    runAsNonRoot: true
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+  headless:
+    enabled: true
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: keycloak.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # No TLS for local development
+  tls: []
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: keycloak
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# No autoscaling for local development
+autoscaling:
+  enabled: false

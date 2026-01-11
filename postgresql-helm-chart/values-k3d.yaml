@@ -1,0 +1,39 @@
+# PostgreSQL Values - k3d Local Deployment
+# All values hardcoded for local development
+
+postgresql:
+  image:
+    repository: postgres
+    tag: "16.2"
+    pullPolicy: IfNotPresent
+
+  auth:
+    database: keycloak
+    username: keycloak
+    password: keycloak123
+    postgresPassword: postgres123
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  securityContext:
+    fsGroup: 999
+    runAsUser: 999
+    runAsNonRoot: true
+
+persistence:
+  enabled: true
+  size: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  # k3d uses local-path provisioner by default
+  storageClass: ""
+
+service:
+  type: ClusterIP
+  port: 5432
